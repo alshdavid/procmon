@@ -27,6 +27,14 @@ echo "\nexport \PATH=\$PATH:\$HOME/.local/procmon\n" >> $HOME/.zshrc
 source $HOME/.zshrc
 ```
 
+#### Updating
+
+```bash
+rm -rf $HOME/.local/procmon
+mkdir -p $HOME/.local/procmon
+curl -L --url https://github.com/alshdavid/procmon/releases/latest/download/macos-arm64.tar.gz | tar -xvzf - -C $HOME/.local/procmon
+```
+
 ## Linux
 
 ```bash
@@ -34,6 +42,14 @@ mkdir -p $HOME/.local/procmon
 curl -L --url https://github.com/alshdavid/procmon/releases/latest/download/linux-amd64.tar.gz | tar -xvzf - -C $HOME/.local/procmon
 echo "\nexport \PATH=\$PATH:\$HOME/.local/procmon\n" >> $HOME/.zshrc
 source $HOME/.zshrc
+```
+
+#### Updating
+
+```bash
+rm -rf $HOME/.local/procmon
+mkdir -p $HOME/.local/procmon
+curl -L --url https://github.com/alshdavid/procmon/releases/latest/download/linux-amd64.tar.gz | tar -xvzf - -C $HOME/.local/procmon
 ```
 
 ## Windows
