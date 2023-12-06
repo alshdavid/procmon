@@ -1,6 +1,7 @@
+mod cfg;
+
 use csv::Writer;
 use std::env;
-use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -8,9 +9,7 @@ use std::sync::Mutex;
 use std::sync::mpsc::channel;
 use std::thread;
 use std::thread::JoinHandle;
-use std::time;
 use std::time::Duration;
-use std::time::Instant;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use sysinfo::Pid;
@@ -20,53 +19,74 @@ use sysinfo::SystemExt;
 
 #[derive(serde::Serialize)]
 struct Row {
-    time: u64,
+    time: u128,
     memory: u64,
-    cpu: f32,
+    cpu: u32,
     disk_read: u64,
     disk_write: u64,
 }
 
 fn main() {
-    let report_file = env_get_report_file_path();
-    let polling_interval = env_get_polling_interval();
-    let target_pid = env_get_pid();
+    let report_file = cfg::get_report_file_path();
+    let polling_interval = cfg::get_polling_interval();
+    let target_pid = cfg::get_pid();
+    let mem_units = cfg::get_mem_units();
 
     let mut handles = Vec::<JoinHandle<()>>::new();
     let duration: Arc<Mutex<Option<Duration>>> = Arc::new(Mutex::new(None));
-    let (sender, receiver) = channel::<u32>();
+    let (sender, receiver) = channel::<(u32, Option<Duration>)>();
 
-    println!("[procmon] Report:   {}", report_file.to_str().unwrap().to_string());
+    let wtr = Arc::new(Mutex::new(Writer::from_writer(report_file.writer())));
+
+    if report_file.to_string() != "stdout" {
+        println!("[procmon] Polling:  {:?}", polling_interval);
+        println!("[procmon] Report:   {}", report_file.to_string());
+    }
 
     // Monitor
     {
         let report_file = report_file.clone();
+        let wtr = wtr.clone();
 
         handles.push(thread::spawn(move || {
-            let pid = receiver.recv().unwrap();
+            let (pid, start_time) = receiver.recv().unwrap();
             // Please note that we use "new_all" to ensure that all list of
             // components, network interfaces, disks and users are already filled!
 
-            println!("[procmon] PID:      {}", pid);
+            if report_file.to_string() != "stdout" {
+                println!("[procmon] PID:      {}", pid);
+            }
 
             let mut sys = System::new_all();
-
-            let mut wtr = Writer::from_path(report_file.clone()).expect("Can't create CSV writer");
             let pid = Pid::from(pid as usize);
+            let mut wtr = wtr.lock().unwrap();
 
             while sys.refresh_process(pid) {
                 let now = SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .expect("Can't get the time");
-                let p = sys.process(pid).expect("Can't get process info");
 
+                let p = sys.process(pid).expect("Can't get process info");
+                
                 let disk = p.disk_usage();
-                let run_time = now.as_secs() - p.start_time();
+                let memory = p.memory() / mem_units as u64;
+                let cpu = p.cpu_usage().round() as u32;
+
+                let start_time_ms = match start_time {
+                    Some(t) => t.as_millis(),
+                    None => (p.start_time() * 1000) as u128,
+                };
+                
+                let run_time = if polling_interval.as_millis() > 1000 {
+                    now.as_millis() - start_time_ms / 1000
+                } else {
+                    now.as_millis() - start_time_ms
+                };
 
                 wtr.serialize(Row {
                     time: run_time,
-                    memory: p.memory(),
-                    cpu: p.cpu_usage(),
+                    memory,
+                    cpu,
                     disk_read: disk.read_bytes,
                     disk_write: disk.written_bytes,
                 })
@@ -85,7 +105,7 @@ fn main() {
         handles.push(thread::spawn(move || {
             if let Some(pid) = target_pid {
                 println!("[procmon] Using existing PID");
-                sender.send(pid).unwrap();
+                sender.send((pid, None)).unwrap();
                 return;
             }
 
@@ -105,14 +125,21 @@ fn main() {
             command.stderr(Stdio::inherit());
 
 
-            let start = Instant::now();
+            let start_time = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Can't get the time");
 
             let mut child = command.spawn().unwrap();
-            sender.send(child.id()).unwrap();
+            sender.send((child.id(), Some(start_time))).unwrap();
             child.wait().unwrap();
-            
+
+            let end_time = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Can't get the time");
+
+            let time_elapsed = end_time - start_time;
             let mut d = duration.lock().unwrap();
-            *d = Some(start.elapsed());
+            *d = Some(time_elapsed);
         }));
     }
 
@@ -120,46 +147,31 @@ fn main() {
         handle.join().unwrap();
     }
 
-    println!("[procmon] Report:   {}", report_file.to_str().unwrap().to_string());
-
     let duration = duration.lock().unwrap().unwrap();
-    if duration.as_secs() == 0 {
+    let total_duration = if polling_interval.as_millis() > 1000 {
+        duration.as_secs() as u128
+    } else {
+        duration.as_millis() as u128
+    };
+
+    wtr.lock().unwrap().serialize(Row {
+        time: total_duration,
+        memory: 0,
+        cpu: 0 as u32,
+        disk_read: 0,
+        disk_write: 0,
+    })
+    .expect("Failed serializing row");
+
+    if report_file.to_string() == "stdout" {
+        return;
+    }
+
+    println!("[procmon] Report:   {}", report_file.to_string());
+
+    if duration.as_secs() < 10 {
         println!("[procmon] Duration: {}ms", duration.as_millis());
     } else {
         println!("[procmon] Duration: {}s", duration.as_secs());
     }
 }
-
-fn env_get_report_file_path() -> PathBuf {
-    let file_name = chrono::offset::Local::now().format("%Y%m%d-%H%M%S.csv").to_string();
-    let mut report_file = env::current_dir().unwrap().join(PathBuf::from(file_name));
-    let report_result = env::var("PM_REPORT");
-    if let Ok(report) = report_result {
-        report_file = PathBuf::from(report);
-        if report_file.is_relative() {
-            report_file = env::current_dir().unwrap().join(report_file);
-        }
-    };
-    return report_file;
-}
-
-fn env_get_polling_interval() -> time::Duration {
-    let result = env::var("PM_POLL_INTERVAL");
-    if let Ok(result) = result {
-        if let Ok(result_int) = result.parse::<u64>() {
-            return time::Duration::from_millis(result_int);
-        }
-    }
-    return time::Duration::from_secs(1);
-}
-
-fn env_get_pid() -> Option<u32> {
-    let result = env::var("PM_PID");
-    if let Ok(result) = result {
-        if let Ok(result_int) = result.parse::<u32>() {
-            return Some(result_int);
-        }
-    }
-    return None;
-}
-
