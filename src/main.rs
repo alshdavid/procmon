@@ -70,7 +70,7 @@ fn main() {
                 
                 let disk = p.disk_usage();
                 let memory = p.memory() / mem_units as u64;
-                let cpu = p.cpu_usage().round() as u32;
+                let cpu = (p.cpu_usage() * 100.0).round() as u32;
 
                 let start_time_ms = match start_time {
                     Some(t) => t.as_millis(),
