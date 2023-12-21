@@ -1,6 +1,4 @@
-use std::{env, io};
-use std::fs::File;
-use std::io::Write;
+use std::env;
 use std::path::PathBuf;
 use std::time;
 
@@ -18,17 +16,6 @@ impl ReportPath {
             },
             ReportPath::Stdout => {
                 return "stdout".to_string();
-            }
-        }
-    }
-
-    pub fn writer(&self) -> Box<dyn Write + Send + Sync> {
-        match self {
-            ReportPath::PathBuf(p) => {
-                return Box::new(File::create(&p).unwrap());
-            },
-            ReportPath::Stdout => {
-                return Box::new(io::stdout());
             }
         }
     }
@@ -84,4 +71,94 @@ pub fn get_mem_units() -> usize {
         }
     }
     return 1048576;
+}
+
+#[derive(Debug, Clone)]
+pub enum TimeUnits {
+    Seconds,
+    Milliseconds,
+}
+
+pub fn get_time_units() -> TimeUnits {
+    let result = env::var("PM_TIME_UNITS");
+    if let Ok(result) = result {
+        if result.to_lowercase() == "s" {
+            return TimeUnits::Seconds;
+        }
+        if result.to_lowercase() == "ms" {
+            return TimeUnits::Milliseconds;
+        }
+    }
+    return TimeUnits::Milliseconds;
+}
+
+
+#[derive(Clone)]
+pub struct Columns {
+    pub cpu: bool,
+    pub memory: bool,
+    pub disk_write: bool,
+    pub disk_read: bool,
+}
+
+impl Columns {
+    pub fn new_string(&self, time: f64, cpu: u64, memory: u64, disk_write: u64, disk_read: u64) -> String {
+        let mut output = Vec::<String>::new();
+
+        output.push(format!("{}", time));
+
+        if self.cpu {
+            output.push(format!("{}", cpu));
+        }
+        if self.memory {
+            output.push(format!("{}", memory));
+        }
+        if self.disk_write {
+            output.push(format!("{}", disk_write));
+        }
+        if self.disk_read {
+            output.push(format!("{}", disk_read));
+        }
+
+        return output.join(",")
+    }
+
+    pub fn get_header(&self) -> String {
+        let mut output = Vec::<String>::new();
+
+        output.push(String::from("time"));
+
+        if self.cpu {
+            output.push(String::from("cpu"));
+        }
+        if self.memory {
+            output.push(String::from("memory"));
+        }
+        if self.disk_write {
+            output.push(String::from("disk_write"));
+        }
+        if self.disk_read {
+            output.push(String::from("disk_read"));
+        }
+
+        return output.join(",")
+    }
+}
+
+pub fn get_columns() -> Columns {
+    let result = env::var("PM_TRACK");
+    if let Ok(result) = result {
+        return Columns{
+            cpu: result.contains("cpu"),
+            memory: result.contains("memory"),
+            disk_write: result.contains("disk_write"),
+            disk_read: result.contains("disk_read"),
+        };
+    }
+    return Columns{
+        cpu: true,
+        memory: true,
+        disk_write: true,
+        disk_read: true,
+    };
 }

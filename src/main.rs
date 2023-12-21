@@ -1,6 +1,5 @@
 mod cfg;
 
-use csv::Writer;
 use std::env;
 use std::process::Command;
 use std::process::Stdio;
@@ -10,6 +9,7 @@ use std::sync::mpsc::channel;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
+use std::fs;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use sysinfo::Pid;
@@ -31,12 +31,14 @@ fn main() {
     let polling_interval = cfg::get_polling_interval();
     let target_pid = cfg::get_pid();
     let mem_units = cfg::get_mem_units();
+    let time_units = cfg::get_time_units();
+    let columns = cfg::get_columns();
 
     let mut handles = Vec::<JoinHandle<()>>::new();
     let duration: Arc<Mutex<Option<Duration>>> = Arc::new(Mutex::new(None));
     let (sender, receiver) = channel::<(u32, Option<Duration>)>();
 
-    let wtr = Arc::new(Mutex::new(Writer::from_writer(report_file.writer())));
+    let buffer = Arc::new(Mutex::new(Vec::<String>::new()));
 
     if report_file.to_string() != "stdout" {
         println!("[procmon] Polling:  {:?}", polling_interval);
@@ -46,7 +48,9 @@ fn main() {
     // Monitor
     {
         let report_file = report_file.clone();
-        let wtr = wtr.clone();
+        let buffer = buffer.clone();
+        let columns = columns.clone();
+        let time_units = time_units.clone();
 
         handles.push(thread::spawn(move || {
             let (pid, start_time) = receiver.recv().unwrap();
@@ -59,7 +63,8 @@ fn main() {
 
             let mut sys = System::new_all();
             let pid = Pid::from(pid as usize);
-            let mut wtr = wtr.lock().unwrap();
+
+            buffer.lock().unwrap().push(columns.get_header());
 
             while sys.refresh_process(pid) {
                 let now = SystemTime::now()
@@ -70,29 +75,26 @@ fn main() {
                 
                 let disk = p.disk_usage();
                 let memory = p.memory() / mem_units as u64;
-                let cpu = (p.cpu_usage() * 100.0).round() as u32;
+                let cpu = (p.cpu_usage() ).round() as u64;
 
                 let start_time_ms = match start_time {
                     Some(t) => t.as_millis(),
                     None => (p.start_time() * 1000) as u128,
                 };
                 
-                let run_time = if polling_interval.as_millis() > 1000 {
-                    now.as_millis() - start_time_ms / 1000
-                } else {
-                    now.as_millis() - start_time_ms
+                let run_time = match time_units {
+                    cfg::TimeUnits::Seconds => (now.as_millis() - start_time_ms) as f64 / 1000 as f64,
+                    cfg::TimeUnits::Milliseconds => (now.as_millis() - start_time_ms) as f64,
                 };
 
-                wtr.serialize(Row {
-                    time: run_time,
-                    memory,
+                buffer.lock().unwrap().push(columns.new_string(
+                    run_time,
                     cpu,
-                    disk_read: disk.read_bytes,
-                    disk_write: disk.written_bytes,
-                })
-                .expect("Failed serializing row");
+                    memory,
+                    disk.written_bytes,
+                    disk.read_bytes,
+                ));
 
-                wtr.flush().expect("Can't flush CSV");
                 thread::sleep(polling_interval);
             }
         }));
@@ -148,24 +150,19 @@ fn main() {
     }
 
     let duration = duration.lock().unwrap().unwrap();
-    let total_duration = if polling_interval.as_millis() > 1000 {
-        duration.as_secs() as u128
-    } else {
-        duration.as_millis() as u128
+    let total_duration = match time_units {
+        cfg::TimeUnits::Seconds => duration.as_secs() as f64,
+        cfg::TimeUnits::Milliseconds => duration.as_millis() as f64,
     };
 
-    wtr.lock().unwrap().serialize(Row {
-        time: total_duration,
-        memory: 0,
-        cpu: 0 as u32,
-        disk_read: 0,
-        disk_write: 0,
-    })
-    .expect("Failed serializing row");
-
-    if report_file.to_string() == "stdout" {
-        return;
-    }
+    buffer.lock().unwrap().push(columns.new_string(
+        total_duration as f64,
+        0,
+        0,
+        0,
+        0,
+    ));
+    fs::write(report_file.to_string(), buffer.lock().unwrap().join("\n")).unwrap();
 
     println!("[procmon] Report:   {}", report_file.to_string());
 
