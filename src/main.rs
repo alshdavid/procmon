@@ -115,9 +115,18 @@ fn main() {
         .duration_since(UNIX_EPOCH)
         .expect("Can't get the time");
 
+      reporter.write(Row {
+        time: start_time,
+        memory: Some(0),
+        cpu: Some(0),
+        disk_read: Some(0),
+        disk_write: Some(0),
+      });
+      
       let mut child = command.spawn().unwrap();
       sender.send((child.id(), start_time)).unwrap();
       child.wait().unwrap();
+
 
       let end_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
