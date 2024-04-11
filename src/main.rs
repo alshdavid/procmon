@@ -116,7 +116,7 @@ fn main() {
         .expect("Can't get the time");
 
       reporter.write(Row {
-        time: start_time,
+        time: Duration::from_millis(0),
         memory: Some(0),
         cpu: Some(0),
         disk_read: Some(0),
