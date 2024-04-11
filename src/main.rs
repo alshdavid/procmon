@@ -1,10 +1,11 @@
 #![deny(unused_crate_dependencies)]
 
 mod args;
-mod reporter;
 mod plot;
+mod reporter;
 
 use clap::Parser;
+use plot::generate_plot;
 use std::env;
 use std::process::Command;
 use std::process::Stdio;
@@ -34,8 +35,7 @@ fn main() {
       memory: !args.no_measure_mem,
       disk: !args.no_measure_disk,
     },
-    &args.mem_units.to_string(),
-    &args.time_units.to_string(),
+    args.clone(),
   ) {
     Ok(v) => v,
     Err(msg) => {
@@ -74,17 +74,7 @@ fn main() {
 
         if !command.no_measure_mem {
           let memory = p.memory();
-          match command.mem_units {
-            args::MemoryUnits::Mb => {
-              row.memory = Some(memory / 1048576 as u64);
-            }
-            args::MemoryUnits::Kb => {
-              row.memory = Some(memory / 1024 as u64);
-            }
-            args::MemoryUnits::B => {
-              row.memory = Some(memory as u64);
-            }
-          }
+          row.memory = Some(memory);
         }
 
         if !command.no_measure_disk {
@@ -93,7 +83,7 @@ fn main() {
           row.disk_write = Some(disk.written_bytes);
         }
 
-        row.time = command.time_units.to_f64(now - start_time);
+        row.time = now - start_time;
 
         reporter.write(row);
         thread::sleep(command.poll_interval);
@@ -125,14 +115,6 @@ fn main() {
         .duration_since(UNIX_EPOCH)
         .expect("Can't get the time");
 
-      reporter.write(Row {
-        time: 0.0,
-        memory: Some(0),
-        cpu: Some(0),
-        disk_read: Some(0),
-        disk_write: Some(0),
-      });
-
       let mut child = command.spawn().unwrap();
       sender.send((child.id(), start_time)).unwrap();
       child.wait().unwrap();
@@ -142,7 +124,7 @@ fn main() {
         .expect("Can't get the time");
 
       reporter.write(Row {
-        time: args.time_units.to_f64(end_time - start_time),
+        time: end_time - start_time,
         memory: Some(0),
         cpu: Some(0),
         disk_read: Some(0),
@@ -153,6 +135,8 @@ fn main() {
 
   h1.join().unwrap();
   h0.join().unwrap();
+
+  generate_plot(&args.report_path, &reporter.rows.read().unwrap()).unwrap();
 }
 
 // fn main() {

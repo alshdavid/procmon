@@ -5,6 +5,10 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::RwLock;
+use std::time::Duration;
+
+use crate::args::Args;
+use crate::args::MemoryUnits;
 
 #[derive(Debug)]
 pub struct Columns {
@@ -15,7 +19,7 @@ pub struct Columns {
 
 #[derive(Default, Debug)]
 pub struct Row {
-  pub time: f64,
+  pub time: Duration,
   pub memory: Option<u64>,
   pub cpu: Option<u64>,
   pub disk_read: Option<u64>,
@@ -25,40 +29,43 @@ pub struct Row {
 pub struct Reporter {
   report_file: File,
   columns: Columns,
+  args: Args,
   pub rows: RwLock<Vec<Row>>,
 }
 
 impl Reporter {
   pub fn new(
-    report_file: &Path,
-    override_report_file: &bool,
+    report_folder: &Path,
+    override_report: &bool,
     columns: Columns,
-    mem_unit: &str,
-    time_unit: &str,
+    args: Args,
   ) -> Result<Arc<Self>, String> {
-    if report_file.exists() {
-      if *override_report_file {
-        fs::remove_file(report_file).unwrap();
+    if report_folder.exists() {
+      if *override_report {
+        fs::remove_dir_all(report_folder).unwrap();
       } else {
         return Err(format!(
-          "Report file {} already exists",
-          report_file.to_str().unwrap()
+          "Report folder {} already exists",
+          report_folder.to_str().unwrap()
         ));
       }
     }
+
+    fs::create_dir(report_folder).unwrap();
+
     let report_file = OpenOptions::new()
       .write(true)
       .append(true)
       .create_new(true)
-      .open(report_file)
+      .open(report_folder.join("report.csv"))
       .unwrap();
 
-    let mut header = vec![format!("time_{}", time_unit)];
+    let mut header = vec![format!("time_{}", args.time_units.get_unit())];
     if columns.cpu {
       header.push("cpu".to_string());
     }
     if columns.memory {
-      header.push(format!("memory_{}", mem_unit));
+      header.push(format!("memory_{}", args.mem_units.get_unit()));
     }
     if columns.disk {
       header.push("disk_read".to_string());
@@ -68,6 +75,7 @@ impl Reporter {
     let reporter = Self {
       report_file,
       columns,
+      args,
       rows: RwLock::new(vec![]),
     };
 
@@ -80,7 +88,14 @@ impl Reporter {
     &self,
     row: Row,
   ) {
-    let mut line = vec![format!("{:.3}", row.time)];
+    let mut line = vec![];
+
+    line.push({
+      match self.args.time_units {
+        crate::args::TimeUnits::S => format!("{:.3}", self.args.time_units.to_f64(row.time)),
+        crate::args::TimeUnits::Ms => format!("{}", row.time.as_millis()),
+      }
+    });
 
     if self.columns.cpu {
       if let Some(cpu) = row.cpu {
@@ -90,7 +105,17 @@ impl Reporter {
 
     if self.columns.memory {
       if let Some(memory) = row.memory {
-        line.push(format!("{}", memory));
+        match self.args.mem_units {
+          MemoryUnits::Mb => {
+            line.push(format!("{}", memory / 1048576 as u64));
+          }
+          MemoryUnits::Kb => {
+            line.push(format!("{}", memory / 1024 as u64));
+          }
+          MemoryUnits::B => {
+            line.push(format!("{}", memory));
+          }
+        }
       }
     }
 

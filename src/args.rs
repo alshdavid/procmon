@@ -13,11 +13,11 @@ pub struct Args {
   pub command: Vec<String>,
 
   /// Output path for the generated report
-  #[arg(short = 'r', long = "report",  env = "PM_REPORT", value_parser = parse_file_path, default_value = "report.csv")]
+  #[arg(short = 'r', long = "report",  env = "PM_REPORT", value_parser = parse_file_path, default_value = "procmon")]
   pub report_path: PathBuf,
 
   /// How often to probe the process for details in milliseconds
-  #[arg(short = 'p', long = "poll-interval", env = "PM_POLL_INTERVAL", value_parser = parse_duration, default_value = "500")]
+  #[arg(short = 'i', long = "interval", env = "PM_INTERVAL", value_parser = parse_duration, default_value = "250")]
   pub poll_interval: time::Duration,
 
   /// What units to use for recording memory
@@ -36,7 +36,7 @@ pub struct Args {
     long = "time-units",
     env = "PM_TIME_UNITS",
     value_enum,
-    default_value = "s"
+    default_value = "ms"
   )]
   pub time_units: TimeUnits,
 
@@ -80,7 +80,7 @@ pub enum MemoryUnits {
 }
 
 impl MemoryUnits {
-  pub fn to_string(&self) -> String {
+  pub fn get_unit(&self) -> String {
     match self {
       MemoryUnits::Mb => "mb".to_string(),
       MemoryUnits::Kb => "kb".to_string(),
@@ -108,7 +108,7 @@ impl TimeUnits {
     }
   }
 
-  pub fn to_string(&self) -> String {
+  pub fn get_unit(&self) -> String {
     match self {
       TimeUnits::S => "s".to_string(),
       TimeUnits::Ms => "ms".to_string(),

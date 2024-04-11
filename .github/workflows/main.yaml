@@ -26,6 +26,7 @@ jobs:
 
       - name: Build
         run: |
+          sudo apt install pkg-config libfreetype6-dev libfontconfig1-dev
           rustup target add x86_64-unknown-linux-gnu
           cargo build --release --target x86_64-unknown-linux-gnu
 
@@ -44,6 +45,7 @@ jobs:
 
       - name: Build
         run: |
+          sudo apt install pkg-config libfreetype6-dev libfontconfig1-dev
           sudo apt-get install gcc-aarch64-linux-gnu
           rustup target add aarch64-unknown-linux-gnu
           cargo build \
