@@ -1,12 +1,9 @@
 [package]
 name = "procmon"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-chrono = "0.4.31"
-csv = "1.3.0"
-serde = { version = "1.0.193", features = ["serde_derive"] }
+clap = { version = "4.5.4", features = ["derive", "env", "string"] }
+serde = { version = "1.0.193", features = ["serde_derive", "derive"] }
 sysinfo = "0.29.10"
