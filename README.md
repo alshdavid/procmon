@@ -3,17 +3,29 @@
 A command line utility that spawns a process and produces a `csv` report on its resource usage.
 
 ```bash
-procmon node -e "setTimeout(() => console.log('Sup'), 4000)"
+procmon --help
+```
+
+```bash
+procmon -- node -e "setTimeout(() => console.log('Sup'), 4000)"
+procmon --mem-units kb --time-units ms -- node -e "setTimeout(() => console.log('Sup'), 4000)"
 ```
 
 This will produce a file named something similar to `20231123-162035.csv` which will contain
 
 ```
-time,memory,cpu,disk_read,disk_write
-1,39321600,0.0,0,0
-2,39321600,0.0,0,0
-3,39321600,0.0,0,0
-4,39321600,0.0,0,0
+time_s,cpu,memory_mb,disk_read,disk_write
+0.000,0,0,0,0
+0.065,0,16,5976064,0
+0.567,0,37,16556032,0
+1.068,0,37,0,0
+1.569,0,37,0,0
+2.069,0,37,0,0
+2.570,0,37,0,0
+3.070,0,37,0,0
+3.571,0,37,0,0
+4.073,0,37,0,0
+4.145,0,0,0,0
 ```
 
 # Installation
@@ -59,3 +71,4 @@ I'm not good at PowerShell - follow the same steps as the Linux/MacOS scripts
 ## Credit
 
 [Matt Jones](https://github.com/mattcompiles) 
+[David Alsh](https://github.com/alshdavid) 
