@@ -8,10 +8,18 @@ procmon --help
 
 ```bash
 procmon -- node -e "setTimeout(() => console.log('Sup'), 4000)"
+```
+
+This will produce a file named something similar to `report.csv`
+
+```bash
 procmon --mem-units kb --time-units ms --report something.csv -- node -e "setTimeout(() => console.log('Sup'), 4000)"
 ```
 
-This will produce a file named something similar to `report.csv` which will contain
+This will produce a file named something similar to `something.csv`
+
+
+The csv file looks like:
 
 ```
 time_s,cpu,memory_mb,disk_read,disk_write
