@@ -4,6 +4,7 @@ A command line utility that spawns a process and produces a `csv` report on its 
 
 ```bash
 procmon --help
+procmon -- [COMMAND]
 ```
 
 ```bash
