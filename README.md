@@ -14,14 +14,18 @@ procmon -- node -e "setTimeout(() => console.log('Sup'), 4000)"
 This will produce a file named something similar to `report.csv`
 
 ```bash
-procmon --mem-units kb --time-units ms --report something.csv -- node -e "setTimeout(() => console.log('Sup'), 4000)"
+procmon --report something -- node -e "setTimeout(() => console.log('Sup'), 4000)"
 ```
 
-This will produce a file named something similar to `something.csv`
+This will produce a folder containing the report
 
+```
+/something
+  report.csv
+  report.png
+```
 
 The csv file looks like:
-
 ```
 time_s,cpu,memory_mb,disk_read,disk_write
 0.000,0,0,0,0
@@ -36,6 +40,10 @@ time_s,cpu,memory_mb,disk_read,disk_write
 4.073,0,37,0,0
 4.145,0,0,0,0
 ```
+
+The png looks like:
+
+<img src=".github/report.jpg">
 
 # Installation
 
