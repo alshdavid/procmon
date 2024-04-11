@@ -4,6 +4,7 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::RwLock;
 
 #[derive(Debug)]
 pub struct Columns {
@@ -24,6 +25,7 @@ pub struct Row {
 pub struct Reporter {
   report_file: File,
   columns: Columns,
+  pub rows: RwLock<Vec<Row>>,
 }
 
 impl Reporter {
@@ -64,8 +66,9 @@ impl Reporter {
     }
 
     let reporter = Self {
-      report_file: report_file,
+      report_file,
       columns,
+      rows: RwLock::new(vec![]),
     };
 
     reporter.write_to_report_file(&header);
@@ -100,6 +103,7 @@ impl Reporter {
       }
     }
 
+    self.rows.write().unwrap().push(row);
     self.write_to_report_file(&line);
   }
 

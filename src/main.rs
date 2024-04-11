@@ -2,6 +2,7 @@
 
 mod args;
 mod reporter;
+mod plot;
 
 use clap::Parser;
 use std::env;
