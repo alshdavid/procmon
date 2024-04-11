@@ -69,7 +69,7 @@ pub fn generate_plot(
   if data_x_max > 2000 {
     chart
       .draw_secondary_series(LineSeries::new(data_y_axis_mem, &RED))?
-      .label(format!("Time: {:.2} s", data_x_max as f64 / 60.0));
+      .label(format!("Time: {:.2} s", data_x_max as f64 / 1000.0));
   } else {
     chart
       .draw_secondary_series(LineSeries::new(data_y_axis_mem, &RED))?
