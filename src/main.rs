@@ -15,9 +15,8 @@ use std::time::Duration;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use sysinfo::Pid;
-use sysinfo::ProcessExt;
+use sysinfo::ProcessesToUpdate;
 use sysinfo::System;
-use sysinfo::SystemExt;
 
 use crate::args::Args;
 use crate::reporter::Columns;
@@ -59,7 +58,10 @@ fn main() {
       // components, network interfaces, disks and users are already filled!
       let mut sys = System::new_all();
 
-      while sys.refresh_process(pid) {
+      loop {
+        if sys.refresh_processes(ProcessesToUpdate::Some(&[pid]), true) == 0 {
+          break;
+        }
         let now = SystemTime::now()
           .duration_since(UNIX_EPOCH)
           .expect("Can't get the time");
@@ -122,11 +124,10 @@ fn main() {
         disk_read: Some(0),
         disk_write: Some(0),
       });
-      
+
       let mut child = command.spawn().unwrap();
       sender.send((child.id(), start_time)).unwrap();
       child.wait().unwrap();
-
 
       let end_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)

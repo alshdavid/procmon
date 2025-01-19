@@ -6,7 +6,7 @@ use crate::reporter::Row;
 
 pub fn generate_plot(
   report_path: &std::path::Path,
-  rows: &Vec<Row>,
+  rows: &[Row],
 ) -> Result<(), Box<dyn Error>> {
   let output_path = report_path.join("report.png");
 
@@ -14,13 +14,13 @@ pub fn generate_plot(
     .iter()
     .map(|r| r.time.as_millis())
     .collect::<Vec<u128>>();
-  let data_x_max = data_x_axis.iter().max().unwrap().clone();
+  let data_x_max = *data_x_axis.iter().max().unwrap();
 
   let data_cpu = rows
     .iter()
     .map(|r| r.cpu.unwrap() as usize)
     .collect::<Vec<usize>>();
-  let data_y_axis_cpu_max = data_cpu.iter().max().unwrap().clone() as u64;
+  let data_y_axis_cpu_max = *data_cpu.iter().max().unwrap() as u64;
   let data_y_axis_cpu = rows
     .iter()
     .map(|r| (r.time.as_millis(), r.cpu.unwrap()))
@@ -30,7 +30,7 @@ pub fn generate_plot(
     .iter()
     .map(|r| (r.memory.unwrap() / 1024) as usize)
     .collect::<Vec<usize>>();
-  let data_y_axis_mem_max = data_mem.iter().max().unwrap().clone() as u64;
+  let data_y_axis_mem_max = *data_mem.iter().max().unwrap() as u64;
   let data_y_axis_mem = rows
     .iter()
     .map(|r| (r.time.as_millis(), (r.memory.unwrap() / 1024)))
@@ -55,7 +55,7 @@ pub fn generate_plot(
 
   chart
     .configure_mesh()
-    .x_desc(format!("Time (ms)"))
+    .x_desc("Time (ms)".to_string())
     .disable_x_mesh()
     .disable_y_mesh()
     .x_labels(round_up(data_x_max as usize) / 1000)

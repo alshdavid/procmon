@@ -54,7 +54,6 @@ impl Reporter {
     fs::create_dir(report_folder).unwrap();
 
     let report_file = OpenOptions::new()
-      .write(true)
       .append(true)
       .create_new(true)
       .open(report_folder.join("report.csv"))
@@ -107,10 +106,10 @@ impl Reporter {
       if let Some(memory) = row.memory {
         match self.args.mem_units {
           MemoryUnits::Mb => {
-            line.push(format!("{}", memory / 1048576 as u64));
+            line.push(format!("{}", memory / 1048576_u64));
           }
           MemoryUnits::Kb => {
-            line.push(format!("{}", memory / 1024 as u64));
+            line.push(format!("{}", memory / 1024_u64));
           }
           MemoryUnits::B => {
             line.push(format!("{}", memory));
@@ -138,9 +137,9 @@ impl Reporter {
   ) {
     let mut output = String::new();
     for (i, col) in text.iter().enumerate() {
-      output.push_str(&format!("{}", col));
+      output.push_str(&col.to_string());
       if i != text.len() - 1 {
-        output.push_str(&format!(","));
+        output.push(',');
       }
     }
     writeln!(&self.report_file, "{}", output).expect("Unable to write to file");

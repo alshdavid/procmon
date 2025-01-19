@@ -103,7 +103,7 @@ impl TimeUnits {
     t: Duration,
   ) -> f64 {
     match self {
-      TimeUnits::S => t.as_millis() as f64 / 1000 as f64,
+      TimeUnits::S => t.as_millis() as f64 / 1000_f64,
       TimeUnits::Ms => t.as_millis() as f64,
     }
   }
