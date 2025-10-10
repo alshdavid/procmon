@@ -89,7 +89,7 @@ pub fn generate_plot(
 fn round_up(i: usize) -> usize {
   let mut c = i;
   loop {
-    if c % 1000 == 0 {
+    if c.is_multiple_of(1000) {
       return c;
     }
     c += 1;
