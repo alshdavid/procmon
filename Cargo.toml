@@ -5,6 +5,5 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.26", features = ["derive", "env", "string"] }
-plotters = "0.3.7"
 serde = { version = "1.0.217", features = ["serde_derive", "derive"] }
 sysinfo = "0.33.1"
