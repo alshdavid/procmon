@@ -13,11 +13,11 @@ pub struct Args {
   pub command: Vec<String>,
 
   /// Output path for the generated report
-  #[arg(short = 'r', long = "report",  env = "PM_REPORT", value_parser = parse_file_path, default_value = "procmon")]
+  #[arg(short = 'r', long = "report",  env = "PM_REPORT", value_parser = parse_file_path, default_value = "procmon.csv")]
   pub report_path: PathBuf,
 
   /// How often to probe the process for details in milliseconds
-  #[arg(short = 'i', long = "interval", env = "PM_INTERVAL", value_parser = parse_duration, default_value = "250")]
+  #[arg(short = 'i', long = "interval", env = "PM_INTERVAL", value_parser = parse_duration, default_value = "200")]
   pub poll_interval: time::Duration,
 
   /// What units to use for recording memory
@@ -41,8 +41,8 @@ pub struct Args {
   pub time_units: TimeUnits,
 
   /// Override report file if exists
-  #[arg(long = "no-override-report")]
-  pub no_override_report: bool,
+  #[arg(short = 'o', long = "override-report")]
+  pub override_report: bool,
 
   /// Don't measure CPU usage
   #[arg(long = "no-cpu", env = "PM_NO_CPU")]
