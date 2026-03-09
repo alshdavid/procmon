@@ -86,14 +86,13 @@ test:
   cargo test
 
 lint:
-  cargo +nightly clippy -- --deny "warnings"
+  cargo clippy -- --deny "warnings"
 
 lint_fix *ARGS:
-  cargo +nightly clippy --fix --allow-staged -- --deny "warnings"
+  cargo clippy --fix --allow-staged -- --deny "warnings"
 
 fmt:
-  cargo +nightly fmt --check
-
+  cargo xfmt --check
 fmt_fix *ARGS:
-  cargo +nightly fmt
+  cargo xfmt
 

@@ -37,12 +37,12 @@ impl Reporter {
     columns: Columns,
     args: Args,
   ) -> anyhow::Result<Self> {
-    if !override_report && std::fs::exists(&report_file)? {
+    if !override_report && std::fs::exists(report_file)? {
       return Err(anyhow::anyhow!("Report {:?} already exists", report_file));
     }
 
-    if std::fs::exists(&report_file)? {
-      std::fs::remove_file(&report_file)?;
+    if std::fs::exists(report_file)? {
+      std::fs::remove_file(report_file)?;
     }
 
     if let Some(parent_dir) = report_file.parent()
@@ -84,14 +84,13 @@ impl Reporter {
           }
         });
 
-        if columns.cpu {
-          if let Some(cpu) = row.cpu {
+        if columns.cpu
+          && let Some(cpu) = row.cpu {
             line.push(format!("{}", cpu));
           }
-        }
 
-        if columns.memory {
-          if let Some(memory) = row.memory {
+        if columns.memory
+          && let Some(memory) = row.memory {
             match args.mem_units {
               MemoryUnits::Mb => {
                 line.push(format!("{}", memory / 1048576_u64));
@@ -104,7 +103,6 @@ impl Reporter {
               }
             }
           }
-        }
 
         if columns.disk {
           if let Some(disk_read) = row.disk_read {

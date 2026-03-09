@@ -32,6 +32,7 @@ jobs:
       - run: source ./.github/install-scripts/just/main.ps1
       - run: source ./.github/install-scripts/rust/main.ps1
       - run: sudo apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
+      - run: cargo install cargo-xfmt
       - run: just fmt
         
   lint:
