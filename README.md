@@ -3,30 +3,39 @@
 A command line utility that spawns a process and produces a `csv` report on its resource usage.
 
 ```bash
-procmon --help
-procmon -- [COMMAND]
+Usage: procmon [OPTIONS] [COMMAND]...
+
+Arguments:
+  [COMMAND]...  Command to run
+
+Options:
+  -r, --report <REPORT_PATH>      Output path for the generated report [env: PM_REPORT=] [default: procmon.csv]
+  -i, --interval <POLL_INTERVAL>  How often to probe the process for details in milliseconds [env: PM_INTERVAL=] [default: 200]
+  -m, --mem-units <MEM_UNITS>     What units to use for recording memory [env: PM_MEM_UNITS=] [default: mb] [possible values: mb, kb, b]
+  -t, --time-units <TIME_UNITS>   What units to use for recording time [env: PM_TIME_UNITS=] [default: ms] [possible values: s, ms]
+  -o, --override-report           Override report file if exists
+      --no-cpu                    Don't measure CPU usage [env: PM_NO_CPU=]
+      --no-memory                 Don't measure memory usage [env: PM_NO_MEMORY=]
+      --no-disk                   Don't measure disk usage [env: PM_NO_DISK=]
+  -h, --help                      Print help
 ```
+
+# Usage
 
 ```bash
 procmon -- node -e "setTimeout(() => console.log('Sup'), 4000)"
 ```
 
-This will produce a file named something similar to `report.csv`
+This will produce a file named `procmon.csv`
 
 ```bash
-procmon --report something -- node -e "setTimeout(() => console.log('Sup'), 4000)"
+procmon --report something.csv -- node -e "setTimeout(() => console.log('Sup'), 4000)"
 ```
 
-This will produce a folder containing the report
-
-```
-/something
-  report.csv
-  report.png
-```
+This will produce a report called `something.csv`
 
 The csv file looks like:
-```
+```javascript
 time_s,cpu,memory_mb,disk_read,disk_write
 0.000,0,0,0,0
 0.065,0,16,5976064,0
@@ -40,10 +49,6 @@ time_s,cpu,memory_mb,disk_read,disk_write
 4.073,0,37,0,0
 4.145,0,0,0,0
 ```
-
-The png looks like:
-
-<img src=".github/report.jpg">
 
 # Installation
 
@@ -80,10 +85,6 @@ rm -rf $HOME/.local/procmon
 mkdir -p $HOME/.local/procmon
 curl -L --url https://github.com/alshdavid/procmon/releases/latest/download/linux-amd64.tar.gz | tar -xvzf - -C $HOME/.local/procmon
 ```
-
-## Windows
-
-I'm not good at PowerShell - follow the same steps as the Linux/MacOS scripts
 
 ## Credit
 

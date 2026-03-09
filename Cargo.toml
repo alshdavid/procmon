@@ -1,10 +1,11 @@
 [package]
 name = "procmon"
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-clap = { version = "4.5.26", features = ["derive", "env", "string"] }
-plotters = "0.3.7"
-serde = { version = "1.0.217", features = ["serde_derive", "derive"] }
-sysinfo = "0.33.1"
+anyhow = "1.0.102"
+clap = { version = "4.5.60", features = ["derive", "env", "string"] }
+serde = { version = "1.0.228", features = ["serde_derive", "derive"] }
+sysinfo = "0.38.3"
+

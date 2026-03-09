@@ -53,14 +53,14 @@ jobs:
             arch: amd64
             runner: ubuntu-24.04
             run: |
-              sudo apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
+              rustup target add x86_64-unknown-linux-musl
               
           - name: 🐥 Linux ARM64
             os: linux
             arch: arm64
             runner: ubuntu-24.04-arm
             run: |
-              sudo apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
+              rustup target add aarch64-unknown-linux-musl
               
           - name: 🍎 MacOS AMD64
             os: macos
